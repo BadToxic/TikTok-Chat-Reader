@@ -105,7 +105,13 @@ const getOrCreateTiktokConnectionWrapper = (streamerId, options) => {
     // Load tiktokConnectionWrapper if already exists
     if (streamerIdToTikTokConnectionWrapperMap[streamerId]) {
         tiktokConnectionWrapper = streamerIdToTikTokConnectionWrapperMap[streamerId];
-    } else {
+        if (tiktokConnectionWrapper.connection._connectState == 'DISCONNECTED') {
+            streamerIdToTikTokConnectionWrapperMap[streamerId] = undefined;
+            console.log('TiktokConnectionWrapper was disconnected. Try to create a new connection.');
+        }
+    }
+    
+    if (!streamerIdToTikTokConnectionWrapperMap[streamerId]) {
         // Else create a new one and connect to the given username (streamerId)
         try {
             tiktokConnectionWrapper = new TikTokConnectionWrapper(streamerId, options, true);
@@ -120,7 +126,11 @@ const getOrCreateTiktokConnectionWrapper = (streamerId, options) => {
 
         // Redirect wrapper control events once
         tiktokConnectionWrapper.once('connected', state => streamerIdToSocketsMap[streamerId]?.forEach((socket) => socket.emit('tiktokConnected', state)));
-        tiktokConnectionWrapper.once('disconnected', reason => streamerIdToSocketsMap[streamerId]?.forEach((socket) => socket.emit('tiktokDisconnected', reason)));
+        tiktokConnectionWrapper.once('disconnected', reason => streamerIdToSocketsMap[streamerId]?.forEach((socket) => {
+            console.log('disconnected: ', reason);
+            console.log('tiktokConnectionWrapper connectState: ', tiktokConnectionWrapper.connection._connectState);
+            return socket.emit('tiktokDisconnected', reason);
+        }));
 
         // Store and redirect message events
         eventTypesToStore.forEach(eventType => {
@@ -136,6 +146,22 @@ const getOrCreateTiktokConnectionWrapper = (streamerId, options) => {
                 }
 
                 streamerIdToSocketsMap[streamerId]?.forEach((socket) => socket.emit(eventType, data));
+            });
+            tiktokConnectionWrapper.connection.on('error', data => {
+                console.log('tiktokConnectionWrapper connectState: ', tiktokConnectionWrapper.connection._connectState);
+                const events = streamEvents[streamerId]?.events;
+                if (!events) {
+                    return;
+                }
+                const errorMessage = 'Error: ' + data.info;
+                // Check if error already in events list
+                if (events.length > 0) {
+                    const latestEvent = events[events.length - 1];
+                    if (latestEvent.type == 'error' && latestEvent.data == errorMessage) {
+                        return;
+                    }
+                }
+                streamEvents[streamerId].events.push({ type: 'error', data: errorMessage, timestamp: Date.now() });
             });
         });
     }
