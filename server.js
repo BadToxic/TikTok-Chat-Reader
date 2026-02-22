@@ -135,6 +135,14 @@ const getOrCreateTiktokConnectionWrapper = (streamerId, options) => {
         // Store and redirect message events
         eventTypesToStore.forEach(eventType => {
             tiktokConnectionWrapper.connection.on(eventType, data => {
+                // Check for special cases to ignore completely
+                if (eventType == 'gift') {
+                    if (isPendingStreak(data) || data.diamondCount < 1) {
+                        console.log('Skipped Gift Event: ', data);
+                        return;
+                    }
+                }
+
                 if (!streamEvents[streamerId]) {
                     streamEvents[streamerId] = createInitialEventContainer();
                 }
