@@ -46,6 +46,7 @@ const eventTypeToTransformer = Object.assign({
         giftName: data.giftName,
         giftType: data.giftType,
         giftPictureUrl: data.giftPictureUrl,
+        repeatCount: data.repeatCount,
         diamondCount: !isPendingStreak(data) && data.diamondCount > 0 ? data.diamondCount * data.repeatCount : 0,
         user: userBaseData(data),
     }}),
