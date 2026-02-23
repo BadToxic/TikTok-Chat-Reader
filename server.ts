@@ -14,12 +14,6 @@ const DELETE_EVENTS_AGE = 30 * 60 * 1000;
 // All known events: ['roomUser', 'member', 'chat', 'gift', 'social', 'like', 'questionNew', 'linkMicBattle', 'linkMicArmies', 'liveIntro', 'emote', 'envelope', 'subscribe', 'streamEnd', 'superFan'];
 const eventTypesToStore = ['liveIntro', 'member', 'roomUser', 'chat', 'gift', 'like', 'follow', 'share', 'emote', 'envelope', 'subscribe', 'superFan', 'streamEnd'];
 
-interface UserBaseData {
-    userId: string;
-    uniqueId: string;
-    nickname: string;
-    profilePictureUrl: string;
-}
 
 const userBaseData = (data: any): UserBaseData => {
     let profilePictureUrl: string | string[] = data.profilePictureUrl ? data.profilePictureUrl : data.profilePicture.url;
@@ -38,111 +32,11 @@ function isPendingStreak(data: any): boolean {
     return data.giftType === 1 && !data.repeatEnd;
 }
 
-interface LiveIntroEvent {
-    type: 'liveIntro';
-    timestamp: number;
-    data: {
-        description: string;
-    };
-}
-
-interface RoomUserEvent {
-    type: 'roomUser';
-    timestamp: number;
-    data: {
-        viewerCount: number;
-    };
-}
-
-interface LikeEvent {
-    type: 'like';
-    timestamp: number;
-    data: {
-        likeCount: number;
-        totalLikeCount: number;
-        user: UserBaseData;
-    };
-}
-
-interface ChatEvent {
-    type: 'chat';
-    timestamp: number;
-    data: {
-        comment: string;
-        contentLanguage: string;
-        user: UserBaseData;
-    };
-}
-
-interface GiftEvent {
-    type: 'gift';
-    timestamp: number;
-    data: {
-        giftId: number;
-        giftName: string;
-        giftType: number;
-        giftPictureUrl: string;
-        repeatCount: number;
-        diamondCount: number;
-        user: UserBaseData;
-    };
-}
-
-interface MemberEvent {
-    type: 'member';
-    timestamp: number;
-    data: {
-        memberCount: number;
-        user: UserBaseData;
-    };
-}
-
-interface ShareEvent {
-    type: 'share';
-    timestamp: number;
-    data: {
-        shareCount: number;
-        user: UserBaseData;
-    };
-}
-
-interface FollowEvent {
-    type: 'follow';
-    timestamp: number;
-    data: {
-        user: UserBaseData;
-    };
-}
-
-interface SubscribeEvent {
-    type: 'subscribe';
-    timestamp: number;
-    data: {
-        user: UserBaseData;
-    };
-}
-
-interface SuperFanEvent {
-    type: 'superFan';
-    timestamp: number;
-    data: {
-        user: UserBaseData;
-    };
-}
-
-interface StreamEndEvent {
-    type: 'streamEnd';
-    timestamp: number;
-    data: any;
-}
-
-type StreamEvent = RoomUserEvent | LikeEvent | ChatEvent | GiftEvent | MemberEvent | ShareEvent | FollowEvent | SubscribeEvent | SuperFanEvent | StreamEndEvent | { type: string; data: any; timestamp: number };
-
 const eventTypeToTransformer: { [key: string]: (data: any) => StreamEvent } = {
     'liveIntro': (data) => ({ type: 'liveIntro', timestamp: Date.now(), data: {
         description: data.description,
         language: data.language,
-        host: userBaseData(data),
+        host: userBaseData(data.host),
     }}),
     'roomUser': (data) => ({ type: 'roomUser', timestamp: Date.now(), data: {
         viewerCount: data.viewerCount
