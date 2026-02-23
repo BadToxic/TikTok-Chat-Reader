@@ -16,7 +16,7 @@ const eventTypesToStore = ['liveIntro', 'member', 'roomUser', 'chat', 'gift', 'l
 
 
 const userBaseData = (data: any): UserBaseData => {
-    let profilePictureUrl: string | string[] = data.profilePictureUrl ? data.profilePictureUrl : data.profilePicture.url;
+    let profilePictureUrl: string | string[] = data.profilePictureUrl ? data.profilePictureUrl : data.profilePicture?.url;
     if (Array.isArray(profilePictureUrl)) {
         profilePictureUrl = profilePictureUrl.length > 0 ? profilePictureUrl[0] : '';
     }
@@ -24,7 +24,7 @@ const userBaseData = (data: any): UserBaseData => {
         userId: data.userId,
         uniqueId: data.uniqueId,
         nickname: data.nickname,
-        profilePictureUrl: data.profilePictureUrl,
+        profilePictureUrl,
     };
 };
 
