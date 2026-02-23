@@ -21,15 +21,29 @@ interface UserBaseData {
     profilePictureUrl: string;
 }
 
-const userBaseData = (data: any): UserBaseData => ({
-    userId: data.userId,
-    uniqueId: data.uniqueId,
-    nickname: data.nickname,
-    profilePictureUrl: data.profilePictureUrl,
-});
+const userBaseData = (data: any): UserBaseData => {
+    let profilePictureUrl: string | string[] = data.profilePictureUrl ? data.profilePictureUrl : data.profilePicture.url;
+    if (Array.isArray(profilePictureUrl)) {
+        profilePictureUrl = profilePictureUrl.length > 0 ? profilePictureUrl[0] : '';
+    }
+    return {
+        userId: data.userId,
+        uniqueId: data.uniqueId,
+        nickname: data.nickname,
+        profilePictureUrl: data.profilePictureUrl,
+    };
+};
 
 function isPendingStreak(data: any): boolean {
     return data.giftType === 1 && !data.repeatEnd;
+}
+
+interface LiveIntroEvent {
+    type: 'liveIntro';
+    timestamp: number;
+    data: {
+        description: string;
+    };
 }
 
 interface RoomUserEvent {
@@ -125,6 +139,11 @@ interface StreamEndEvent {
 type StreamEvent = RoomUserEvent | LikeEvent | ChatEvent | GiftEvent | MemberEvent | ShareEvent | FollowEvent | SubscribeEvent | SuperFanEvent | StreamEndEvent | { type: string; data: any; timestamp: number };
 
 const eventTypeToTransformer: { [key: string]: (data: any) => StreamEvent } = {
+    'liveIntro': (data) => ({ type: 'liveIntro', timestamp: Date.now(), data: {
+        description: data.description,
+        language: data.language,
+        host: userBaseData(data),
+    }}),
     'roomUser': (data) => ({ type: 'roomUser', timestamp: Date.now(), data: {
         viewerCount: data.viewerCount
     }}),

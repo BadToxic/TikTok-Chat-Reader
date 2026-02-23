@@ -1,24 +1,29 @@
 {
   "name": "stream-reader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "author": {
     "name": "BadToxic",
     "url": "https://discord.gg/8QMCm2d"
   },
+  "license": "MIT",
+  "scripts": {
+    "start": "tsx server.ts",
+    "build": "npm install"
+  },
   "dependencies": {
     "dotenv": "^16.0.0",
     "express": "^4.17.2",
     "socket.io": "^4.4.1",
-    "tiktok-live-connector": "^2.1.1-beta1"
+    "tiktok-live-connector": "^2.1.1-beta1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/jquery": "^3.5.33",
     "@types/node": "^25.3.0",
     "@types/ws": "^8.18.1",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "ts-node": "^10.9.2"
   }
 }
