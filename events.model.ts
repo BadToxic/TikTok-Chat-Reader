@@ -1,11 +1,11 @@
-interface UserBaseData {
+export interface UserBaseData {
     userId: string;
     uniqueId: string;
-    nickname: string;
-    profilePictureUrl: string;
+    nickname?: string;
+    profilePictureUrl?: string;
 }
 
-interface LiveIntroEvent {
+export interface LiveIntroEvent {
     type: 'liveIntro';
     timestamp: number;
     data: {
@@ -13,7 +13,7 @@ interface LiveIntroEvent {
     };
 }
 
-interface RoomUserEvent {
+export interface RoomUserEvent {
     type: 'roomUser';
     timestamp: number;
     data: {
@@ -21,7 +21,7 @@ interface RoomUserEvent {
     };
 }
 
-interface LikeEvent {
+export interface LikeEvent {
     type: 'like';
     timestamp: number;
     data: {
@@ -31,7 +31,7 @@ interface LikeEvent {
     };
 }
 
-interface ChatEvent {
+export interface ChatEvent {
     type: 'chat';
     timestamp: number;
     data: {
@@ -41,7 +41,7 @@ interface ChatEvent {
     };
 }
 
-interface GiftEvent {
+export interface GiftEvent {
     type: 'gift';
     timestamp: number;
     data: {
@@ -55,7 +55,7 @@ interface GiftEvent {
     };
 }
 
-interface MemberEvent {
+export interface MemberEvent {
     type: 'member';
     timestamp: number;
     data: {
@@ -64,7 +64,7 @@ interface MemberEvent {
     };
 }
 
-interface ShareEvent {
+export interface ShareEvent {
     type: 'share';
     timestamp: number;
     data: {
@@ -73,7 +73,7 @@ interface ShareEvent {
     };
 }
 
-interface FollowEvent {
+export interface FollowEvent {
     type: 'follow';
     timestamp: number;
     data: {
@@ -81,7 +81,7 @@ interface FollowEvent {
     };
 }
 
-interface SubscribeEvent {
+export interface SubscribeEvent {
     type: 'subscribe';
     timestamp: number;
     data: {
@@ -89,7 +89,7 @@ interface SubscribeEvent {
     };
 }
 
-interface SuperFanEvent {
+export interface SuperFanEvent {
     type: 'superFan';
     timestamp: number;
     data: {
@@ -97,10 +97,12 @@ interface SuperFanEvent {
     };
 }
 
-interface StreamEndEvent {
+export interface StreamEndEvent {
     type: 'streamEnd';
     timestamp: number;
     data: any;
 }
 
-type StreamEvent = LiveIntroEvent | RoomUserEvent | LikeEvent | ChatEvent | GiftEvent | MemberEvent | ShareEvent | FollowEvent | SubscribeEvent | SuperFanEvent | StreamEndEvent | { type: string; data: any; timestamp: number };
+export type StreamEvent = LiveIntroEvent | RoomUserEvent | LikeEvent | ChatEvent | GiftEvent | MemberEvent | ShareEvent | FollowEvent | SubscribeEvent | SuperFanEvent | StreamEndEvent | { type: string; data: any; timestamp: number };
+
+export type StreamEvents = { [key: string]: { events: StreamEvent[] } }

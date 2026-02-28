@@ -40,12 +40,22 @@
         A chat reader for <a href="https://www.tiktok.com/live">TikTok LIVE</a> utilizing <a href="https://github.com/zerodytrash/TikTok-Live-Connector">TikTok-Live-Connector</a> and <a href="https://socket.io/">Socket.IO</a> to forward the data to the client. More Tools available at <a href="https://tikfinity.zerody.one/" target="_blank">TikFinity</a>.
     </div>
 
-    <div class="inputFields">
-        <p>Enter the <b>@username</b> of a user who is currently live:</p>
-        <input type="text" id="uniqueIdInput">
-        <input type="button" id="connectButton" value="connect">
-        <a href="#" onclick="generateOverlay()">Generate Overlay URL</a>
+<div class="inputFields">
+    <p>Select platform and enter <b>@username</b> of a user who is currently live:</p>
+    <div class="platform-selector">
+        <label>
+            <input type="radio" name="platform" value="tiktok" checked>
+            TikTok
+        </label>
+        <label>
+            <input type="radio" name="platform" value="twitch">
+            Twitch
+        </label>
     </div>
+    <input type="text" id="uniqueIdInput" placeholder="Enter username">
+    <input type="button" id="connectButton" value="connect">
+    <a href="#" onclick="generateOverlay()">Generate Overlay URL</a>
+</div>
 
     <table class="splitstatetable">
         <tr>

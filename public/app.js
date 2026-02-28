@@ -17,30 +17,26 @@ $(document).ready(() => {
             connect();
         }
     });
-
     if (window.settings.username) connect();
 })
 
 function connect() {
     let uniqueId = window.settings.username || $('#uniqueIdInput').val();
     if (uniqueId !== '') {
-
         $('#stateText').text('Connecting...');
 
-        connection.connect(uniqueId, {
-            enableExtendedGiftInfo: true
-        }).then(state => {
-            $('#stateText').text(`Connected to roomId ${state.roomId}`);
+        // Read selected platform
+        let platform = $('input[name="platform"]:checked').val() || 'tiktok';
 
+        connection.connect(uniqueId, { enableExtendedGiftInfo: true }, platform).then(state => {
+            $('#stateText').text(`Connected to ${platform} - ${state.roomId || uniqueId}`);
             // reset stats
             viewerCount = 0;
             likeCount = 0;
             diamondsCount = 0;
             updateRoomStats();
-
         }).catch(errorMessage => {
             $('#stateText').text(errorMessage);
-
             // schedule next try if obs username set
             if (window.settings.username) {
                 setTimeout(() => {
@@ -48,7 +44,6 @@ function connect() {
                 }, 30000);
             }
         })
-
     } else {
         alert('no username entered');
     }
@@ -87,7 +82,7 @@ function addChatItem(color, data, text, summarize) {
         <div class=${summarize ? 'temporary' : 'static'}>
             <img class="miniprofilepicture" src="${data.profilePictureUrl}">
             <span>
-                <b>${generateUsernameLink(data)}:</b> 
+                <b>${generateUsernameLink(data)}:</b>
                 <span style="color:${color}">${sanitize(text)}</span>
             </span>
         </div>
@@ -115,7 +110,8 @@ function addGiftItem(data) {
         <div data-streakid=${isPendingStreak(data) ? streakId : ''}>
             <img class="miniprofilepicture" src="${data.profilePictureUrl}">
             <span>
-                <b>${generateUsernameLink(data)}:</b> <span>${data.describe}</span><br>
+                <b>${generateUsernameLink(data)}:</b>
+                <span>${data.describe}</span><br>
                 <div>
                     <table>
                         <tr>
@@ -146,7 +142,6 @@ function addGiftItem(data) {
     }, 800);
 }
 
-
 // viewer stats
 connection.on('roomUser', (msg) => {
     if (typeof msg.viewerCount === 'number') {
@@ -171,6 +166,7 @@ connection.on('like', (msg) => {
 
 // Member join
 let joinMsgDelay = 0;
+
 connection.on('member', (msg) => {
     if (window.settings.showJoins === "0") return;
 
@@ -189,7 +185,6 @@ connection.on('member', (msg) => {
 // New chat comment received
 connection.on('chat', (msg) => {
     if (window.settings.showChats === "0") return;
-
     addChatItem('', msg, msg.comment);
 })
 
