@@ -11,9 +11,20 @@ const twitchUserBaseData = (username: string, tags: tmi.ChatUserstate): UserBase
     return {
         userId: tags['user-id'] || username,
         uniqueId: tags['display-name'] || username,
-        profilePictureUrl: '',
     };
 };
+
+const subscriptionTagsToTier = (tags: tmi.ChatUserstate): string | undefined => {
+    const sysMsg: string = tags['system-msg'];
+    if (sysMsg.includes('subscribed with Prime')) {
+        return 'Prime'; 
+    }
+    if (sysMsg.includes('subscribed at Tier')) {
+        const tierPos = sysMsg.indexOf('Tier');
+        return sysMsg.substring(tierPos, tierPos + 6)
+    }
+    return undefined
+}
 
 const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any, message?: string, self?: boolean) => StreamEvent } = {
     'chat': (channel, tags, message) => ({
@@ -49,8 +60,9 @@ const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any
         data: {
             user: twitchUserBaseData(tags.username || '', tags),
             cumulativeMonths: tags['msg-param-cumulative-months'],
-            shouldShareStreak: tags['msg-param-should-share-streak'],
-        }
+            streakMonths: tags['msg-param-streak-months'],
+            tier: subscriptionTagsToTier(tags)
+        },
     }),
     'resub': (channel, tags, message) => ({
         type: 'subscribe',
@@ -59,12 +71,12 @@ const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any
             user: twitchUserBaseData(tags.username || '', tags),
             cumulativeMonths: tags['msg-param-cumulative-months'],
             streakMonths: tags['msg-param-streak-months'],
-            shouldShareStreak: tags['msg-param-should-share-streak'],
             message: message || '',
-        }
+            tier: subscriptionTagsToTier(tags)
+        },
     }),
     'subgift': (channel, tags, message) => ({
-        type: 'gift',
+        type: 'subscribe',
         timestamp: Date.now(),
         data: {
             giftName: 'Subscription Gift',
@@ -72,10 +84,11 @@ const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any
             recipient: tags['msg-param-recipient-display-name'] || tags['msg-param-recipient-user-name'],
             senderCount: tags['msg-param-sender-count'],
             user: twitchUserBaseData(tags.username || '', tags),
-        }
+            tier: subscriptionTagsToTier(tags)
+        },
     }),
     'submysterygift': (channel, tags, message) => ({
-        type: 'gift',
+        type: 'subscribe',
         timestamp: Date.now(),
         data: {
             giftName: 'Mystery Subscription Gift',
@@ -83,10 +96,11 @@ const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any
             massGiftCount: tags['msg-param-mass-gift-count'],
             senderCount: tags['msg-param-sender-count'],
             user: twitchUserBaseData(tags.username || '', tags),
-        }
+            tier: subscriptionTagsToTier(tags)
+        },
     }),
     'raided': (channel, tags) => ({
-        type: 'share',
+        type: 'raided',
         timestamp: Date.now(),
         data: {
             raider: tags['msg-param-displayName'] || tags['msg-param-login'],
@@ -183,6 +197,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
+                console.log('sub tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['sub']!(targetChannel, { ...tags, username }, message);
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -195,6 +210,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
+                console.log('resub tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['resub']!(targetChannel, { ...tags, username }, message);
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -207,6 +223,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
+                console.log('subgift tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['subgift']!(targetChannel, { ...tags, username });
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -219,6 +236,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
+                console.log('submysterygift tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['submysterygift']!(targetChannel, { ...tags, username });
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
