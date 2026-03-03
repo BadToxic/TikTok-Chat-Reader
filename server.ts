@@ -2,30 +2,19 @@ import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+
 import { getGlobalConnectionCount } from './connectionWrapper.js';
 import { clientBlocked } from './limiter.js';
-import {
-    DELETE_EVENTS_AGE,
-    getPlatformKey,
-    streamEvents,
-    requesterIdToLastRequestTimestamp,
-    streamerIdToSocketsMap,
-    socketToPlatformKeyMap,
-    streamerIdToTikTokConnectionWrapperMap,
-    streamerIdToTwitchClientMap,
-    socketToPlatformMap,
-    createInitialEventContainer
-} from './types.js';
+import { DELETE_EVENTS_AGE, getPlatformKey, streamEvents, requesterIdToLastRequestTimestamp, streamerIdToSocketsMap, socketToPlatformKeyMap, streamerIdToTikTokConnectionWrapperMap, streamerIdToTwitchClientMap, streamerIdToYouTubeConnectionMap, socketToPlatformMap, createInitialEventContainer } from './types.js';
 import { getOrCreateTiktokConnectionWrapper } from './tiktok.js';
 import { getOrCreateTwitchConnectionWrapper } from './twitch.js';
+import { getOrCreateYouTubeConnectionWrapper, disconnectYouTube, updateYouTubeLastRequest } from './youtube.js';
 
 const app = express();
 const httpServer = createServer(app);
 
 // Enable cross origin resource sharing
-const io = new Server(httpServer, {
-    cors: { origin: '*' }
-});
+const io = new Server(httpServer, { cors: { origin: '*' } });
 
 io.on('connection', (socket) => {
     console.info('New connection from origin', socket.handshake.headers['origin'] || socket.handshake.headers['referer']);
@@ -76,10 +65,7 @@ io.on('connection', (socket) => {
         }
 
         if (process.env.ENABLE_RATE_LIMIT && clientBlocked(io, socket)) {
-            socket.emit('streamDisconnected', {
-                platform: 'twitch',
-                reason: 'You have opened too many connections or made too many connection requests. Please reduce the number of connections/requests or host your own server instance.'
-            });
+            socket.emit('streamDisconnected', { platform: 'twitch', reason: 'You have opened too many connections or made too many connection requests. Please reduce the number of connections/requests or host your own server instance.' });
             return;
         }
 
@@ -105,9 +91,42 @@ io.on('connection', (socket) => {
         }
     };
 
+    const setYouTubeStreamerId = async (streamerId: string, options: any) => {
+        if (typeof options !== 'object' || !options) {
+            options = {};
+        }
+
+        if (process.env.ENABLE_RATE_LIMIT && clientBlocked(io, socket)) {
+            socket.emit('streamDisconnected', { platform: 'youtube', reason: 'You have opened too many connections or made too many connection requests. Please reduce the number of connections/requests or host your own server instance.' });
+            return;
+        }
+
+        const platformKey = getPlatformKey('youtube', streamerId);
+
+        let socketList: any[];
+        if (streamerIdToSocketsMap[platformKey]) {
+            socketList = streamerIdToSocketsMap[platformKey];
+        } else {
+            socketList = [];
+            streamerIdToSocketsMap[platformKey] = socketList;
+        }
+
+        const [youTubeConnection, errStr] = await getOrCreateYouTubeConnectionWrapper(platformKey, streamerId, options);
+
+        if (youTubeConnection) {
+            socketList.push(socket);
+            socketToPlatformKeyMap[socket.id] = platformKey;
+            socketToPlatformMap[socket.id] = 'youtube';
+        } else {
+            socket.emit('streamDisconnected', { platform: 'youtube', reason: errStr });
+            return;
+        }
+    };
+
     socket.on('setUniqueId', setTikTokStreamerId);
     socket.on('setstreamerId', setTikTokStreamerId);
     socket.on('setTwitchStreamerId', setTwitchStreamerId);
+    socket.on('setYouTubeStreamerId', setYouTubeStreamerId);
 
     socket.on('disconnect', () => {
         const platformKey = socketToPlatformKeyMap[socket.id];
@@ -138,6 +157,8 @@ io.on('connection', (socket) => {
                         client.disconnect();
                         streamerIdToTwitchClientMap[platformKey] = undefined;
                     }
+                } else if (platformKey.startsWith('youtube:')) {
+                    disconnectYouTube(platformKey);
                 }
             }
         }
@@ -155,11 +176,39 @@ app.get('/events', (req, res) => {
         return res.status(400).send('Missing requesterId parameter.');
     }
 
-    const platformType = (typeof platform === 'string' ? platform.toLowerCase() : 'tiktok') as 'tiktok' | 'twitch';
+    const platformType = (typeof platform === 'string' ? platform.toLowerCase() : 'tiktok') as 'tiktok' | 'twitch' | 'youtube';
     const platformKey = getPlatformKey(platformType, streamerId);
     const options = { /*enableExtendedGiftInfo: true*/ };
 
-    if (platformType === 'twitch') {
+    if (platformType === 'youtube') {
+        // Update last request timestamp for YouTube polling
+        updateYouTubeLastRequest(platformKey);
+
+        // Ensure connection exists
+        if (!streamerIdToYouTubeConnectionMap[platformKey]?.isConnected) {
+            getOrCreateYouTubeConnectionWrapper(platformKey, streamerId, options);
+        }
+
+        if (!streamEvents[platformKey]) {
+            streamEvents[platformKey] = createInitialEventContainer();
+        }
+
+        const lastRequestTimestamp = requesterIdToLastRequestTimestamp[requesterId];
+        if (!lastRequestTimestamp) {
+            requesterIdToLastRequestTimestamp[requesterId] = Date.now();
+            return res.json({ events: [], message: 'New ID registered. No events yet.' });
+        }
+
+        const { events } = streamEvents[platformKey];
+        const newEvents = events.filter(event => event.timestamp > lastRequestTimestamp);
+
+        requesterIdToLastRequestTimestamp[requesterId] = Date.now();
+        streamEvents[platformKey].events = streamEvents[platformKey].events.filter(
+            event => event.timestamp > (Date.now() - DELETE_EVENTS_AGE)
+        );
+
+        res.json({ events: newEvents.map(event => ({ platform: 'youtube', type: event.type, data: event.data })) });
+    } else if (platformType === 'twitch') {
         // Ensure connection exists
         if (!streamerIdToTwitchClientMap[platformKey]) {
             getOrCreateTwitchConnectionWrapper(platformKey, streamerId, options);
@@ -183,13 +232,7 @@ app.get('/events', (req, res) => {
             event => event.timestamp > (Date.now() - DELETE_EVENTS_AGE)
         );
 
-        res.json({
-            events: newEvents.map(event => ({
-                platform: 'twitch',
-                type: event.type,
-                data: event.data
-            }))
-        });
+        res.json({ events: newEvents.map(event => ({ platform: 'twitch', type: event.type, data: event.data })) });
     } else {
         // TikTok logic
         const [tiktokConnectionWrapper, errStr] = getOrCreateTiktokConnectionWrapper(platformKey, streamerId, options);
@@ -216,14 +259,7 @@ app.get('/events', (req, res) => {
             event => event.timestamp > (Date.now() - DELETE_EVENTS_AGE)
         );
 
-        res.json({
-            events: newEvents.map(event => ({
-                platform: 'tiktok',
-                type: event.type,
-                data: event.data,
-                timestamp: event.timestamp
-            }))
-        });
+        res.json({ events: newEvents.map(event => ({ platform: 'tiktok', type: event.type, data: event.data, timestamp: event.timestamp })) });
     }
 });
 

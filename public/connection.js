@@ -63,6 +63,8 @@ class TikTokIOConnection {
     setUniqueId() {
         if (this.platform === 'twitch') {
             this.socket.emit('setTwitchStreamerId', this.uniqueId, this.options);
+        } else if (this.platform === 'youtube') {
+            this.socket.emit('setYouTubeStreamerId', this.uniqueId, this.options);
         } else {
             this.socket.emit('setUniqueId', this.uniqueId, this.options);
         }

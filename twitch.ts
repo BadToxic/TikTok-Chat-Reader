@@ -197,7 +197,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('sub tags: ', tags);
+                // console.log('sub tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['sub']!(targetChannel, { ...tags, username }, message);
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -210,7 +210,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('resub tags: ', tags);
+                // console.log('resub tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['resub']!(targetChannel, { ...tags, username }, message);
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -223,7 +223,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('subgift tags: ', tags);
+                // console.log('subgift tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['subgift']!(targetChannel, { ...tags, username });
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -236,7 +236,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('submysterygift tags: ', tags);
+                // console.log('submysterygift tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['submysterygift']!(targetChannel, { ...tags, username });
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
