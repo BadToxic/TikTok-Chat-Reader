@@ -42,16 +42,20 @@
 
 <div class="inputFields">
     <p>Select platform and enter <b>@username</b> of a user who is currently live:</p>
-    <div class="platform-selector">
-        <label>
-            <input type="radio" name="platform" value="tiktok" checked>
-            TikTok
-        </label>
-        <label>
-            <input type="radio" name="platform" value="twitch">
-            Twitch
-        </label>
-    </div>
+<div class="platform-selector">
+    <label>
+        <input type="radio" name="platform" value="tiktok" checked>
+        TikTok
+    </label>
+    <label>
+        <input type="radio" name="platform" value="twitch">
+        Twitch
+    </label>
+    <label>
+        <input type="radio" name="platform" value="youtube">
+        YouTube
+    </label>
+</div>
     <input type="text" id="uniqueIdInput" placeholder="Enter username">
     <input type="button" id="connectButton" value="connect">
     <a href="#" onclick="generateOverlay()">Generate Overlay URL</a>

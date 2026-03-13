@@ -18,7 +18,8 @@
     "tiktok-live-connector": "^2.1.1-beta1",
     "tmi.js": "^1.8.5",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

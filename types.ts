@@ -4,7 +4,7 @@ import tmi from 'tmi.js';
 import { Server } from 'socket.io';
 
 // Platform-specific key (platform:streamerId)
-export const getPlatformKey = (platform: 'tiktok' | 'twitch', streamerId: string): string => {
+export const getPlatformKey = (platform: 'tiktok' | 'twitch' | 'youtube', streamerId: string): string => {
     return `${platform}:${streamerId.toLowerCase()}`;
 };
 
@@ -27,8 +27,30 @@ export const streamerIdToTikTokConnectionWrapperMap: { [key: string]: TikTokConn
 // Twitch connection maps - Keys are platform:streamerId
 export const streamerIdToTwitchClientMap: { [key: string]: tmi.Client | undefined } = {};
 
+// Twitch official API (Followers) connection map
+export interface TwitchOfficialConnection {
+    broadcasterId: string;
+    clientId: string;
+    clientSecret: string;
+}
+export const streamerIdToTwitchOfficialConnectionMap: { [key: string]: TwitchOfficialConnection | undefined } = {};
+
+// YouTube connection maps - Keys are platform:streamerId
+export interface YouTubeConnection {
+    apiKey: string;
+    intervalId?: NodeJS.Timeout;
+    isConnected: boolean;
+    lastRequestTimestamp: number;
+    videoId: string;
+    liveChatId: string;
+}
+export const streamerIdToYouTubeConnectionMap: { [key: string]: YouTubeConnection | undefined } = {};
+
+// Track last request time for YouTube polling管理与自动断开
+export const streamerIdToYouTubeLastRequestMap: { [key: string]: number } = {};
+
 // Socket also stores platform info
-export const socketToPlatformMap: { [key: string]: 'tiktok' | 'twitch' } = {};
+export const socketToPlatformMap: { [key: string]: 'tiktok' | 'twitch' | 'youtube' } = {};
 
 // Socket.io server instance (will be set by server.ts)
 export let io: Server;

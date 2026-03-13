@@ -32,15 +32,15 @@ const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any
         timestamp: Date.now(),
         data: {
             comment: message || '',
-            contentLanguage: '',
+            // contentLanguage: '',
             user: twitchUserBaseData(tags.username || '', tags),
-            badges: tags.badges,
-            emotes: tags.emotes,
-            color: tags.color,
-            mod: tags.mod,
-            subscriber: tags.subscriber,
-            turbo: tags.turbo,
-            'message-type': tags['message-type'],
+            // badges: tags.badges,
+            // emotes: tags.emotes,
+            // color: tags.color,
+            // mod: tags.mod,
+            // subscriber: tags.subscriber,
+            // turbo: tags.turbo,
+            // 'message-type': tags['message-type'],
         }
     }),
     'cheer': (channel, tags, message) => ({
@@ -139,12 +139,12 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
             channels: [channel],
         };
 
-        if (process.env.TWITCH_OAUTH_TOKEN) {
+        /*if (process.env.TWITCH_OAUTH_TOKEN) {
             clientConfig.identity = {
                 username: process.env.TWITCH_USERNAME || 'justinfan12345',
                 password: process.env.TWITCH_OAUTH_TOKEN,
             };
-        }
+        }*/
 
         try {
             twitchClient = new tmi.client(clientConfig);
@@ -197,7 +197,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('sub tags: ', tags);
+                // console.log('sub tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['sub']!(targetChannel, { ...tags, username }, message);
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -210,7 +210,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('resub tags: ', tags);
+                // console.log('resub tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['resub']!(targetChannel, { ...tags, username }, message);
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -223,7 +223,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('subgift tags: ', tags);
+                // console.log('subgift tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['subgift']!(targetChannel, { ...tags, username });
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
@@ -236,7 +236,7 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
                 if (!streamEvents[platformKey]) {
                     streamEvents[platformKey] = createInitialEventContainer();
                 }
-                console.log('submysterygift tags: ', tags);
+                // console.log('submysterygift tags: ', tags);
                 const eventData = twitchEventTypeToTransformer['submysterygift']!(targetChannel, { ...tags, username });
                 streamEvents[platformKey].events.push(eventData);
                 streamerIdToSocketsMap[platformKey]?.forEach((socket) => {
