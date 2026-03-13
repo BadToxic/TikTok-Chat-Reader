@@ -5,9 +5,11 @@ import { Server } from 'socket.io';
 
 import { getGlobalConnectionCount } from './connectionWrapper.js';
 import { clientBlocked } from './limiter.js';
-import { DELETE_EVENTS_AGE, getPlatformKey, streamEvents, requesterIdToLastRequestTimestamp, streamerIdToSocketsMap, socketToPlatformKeyMap, streamerIdToTikTokConnectionWrapperMap, streamerIdToTwitchClientMap, streamerIdToYouTubeConnectionMap, socketToPlatformMap, createInitialEventContainer } from './types.js';
+import { DELETE_EVENTS_AGE, getPlatformKey, streamEvents, requesterIdToLastRequestTimestamp, streamerIdToSocketsMap, socketToPlatformKeyMap, streamerIdToTikTokConnectionWrapperMap, streamerIdToTwitchClientMap, streamerIdToTwitchOfficialConnectionMap, streamerIdToYouTubeConnectionMap, socketToPlatformMap, createInitialEventContainer } from './types.js';
+
 import { getOrCreateTiktokConnectionWrapper } from './tiktok.js';
 import { getOrCreateTwitchConnectionWrapper } from './twitch.js';
+import { getOrCreateTwitchOfficialConnectionWrapper, disconnectTwitchOfficial, updateTwitchLastRequest } from './twitchOfficial.js';
 import { getOrCreateYouTubeConnectionWrapper, disconnectYouTube, updateYouTubeLastRequest } from './youtube.js';
 
 const app = express();
@@ -79,14 +81,36 @@ io.on('connection', (socket) => {
             streamerIdToSocketsMap[platformKey] = socketList;
         }
 
-        const [twitchClient, errStr] = await getOrCreateTwitchConnectionWrapper(platformKey, streamerId, options);
+        const useOfficialAPI = process.env.TWITCH_USE_OFFICIAL_API === 'true';
+        let tmiConnected = false;
+        let officialConnected = false;
 
+        // Always use tmi.js for chat/subs/gifts/raids
+        const [twitchClient, tmiErr] = await getOrCreateTwitchConnectionWrapper(platformKey, streamerId, options);
         if (twitchClient) {
+            tmiConnected = true;
+        } else {
+            console.warn(`tmi.js connection failed for ${platformKey}:`, tmiErr);
+        }
+
+        // If official API enabled, also get followers
+        if (useOfficialAPI) {
+            const [officialClient, officialErr] = await getOrCreateTwitchOfficialConnectionWrapper(platformKey, streamerId, options);
+            if (officialClient) {
+                officialConnected = true;
+            } else {
+                console.warn(`Twitch official API connection failed for ${platformKey}:`, officialErr);
+            }
+        }
+
+        // At least one connection must succeed
+        if (tmiConnected || officialConnected) {
             socketList.push(socket);
             socketToPlatformKeyMap[socket.id] = platformKey;
             socketToPlatformMap[socket.id] = 'twitch';
+            console.log(`Twitch connections for ${platformKey}: tmi=${tmiConnected}, official=${officialConnected}`);
         } else {
-            socket.emit('streamDisconnected', { platform: 'twitch', reason: errStr });
+            socket.emit('streamDisconnected', { platform: 'twitch', reason: 'Both tmi.js and official API connections failed' });
             return;
         }
     };
@@ -152,10 +176,15 @@ io.on('connection', (socket) => {
                         streamerIdToTikTokConnectionWrapperMap[platformKey] = undefined;
                     }
                 } else if (platformKey.startsWith('twitch:')) {
-                    const client = streamerIdToTwitchClientMap[platformKey];
-                    if (client) {
-                        client.disconnect();
+                    // disconnect tmi.js
+                    const tmiClient = streamerIdToTwitchClientMap[platformKey];
+                    if (tmiClient) {
+                        tmiClient.disconnect();
                         streamerIdToTwitchClientMap[platformKey] = undefined;
+                    }
+                    // disconnect official API if used
+                    if (process.env.TWITCH_USE_OFFICIAL_API === 'true') {
+                        disconnectTwitchOfficial(platformKey);
                     }
                 } else if (platformKey.startsWith('youtube:')) {
                     disconnectYouTube(platformKey);
@@ -209,9 +238,19 @@ app.get('/events', (req, res) => {
 
         res.json({ events: newEvents.map(event => ({ platform: 'youtube', type: event.type, data: event.data })) });
     } else if (platformType === 'twitch') {
-        // Ensure connection exists
+        // Update last request timestamp for official Twitch API polling
+        if (process.env.TWITCH_USE_OFFICIAL_API === 'true') {
+            updateTwitchLastRequest(platformKey);
+        }
+
+        // Ensure tmi.js connection exists (for chat)
         if (!streamerIdToTwitchClientMap[platformKey]) {
             getOrCreateTwitchConnectionWrapper(platformKey, streamerId, options);
+        }
+
+        // Ensure official API connection exists (for followers)
+        if (process.env.TWITCH_USE_OFFICIAL_API === 'true' && !streamerIdToTwitchOfficialConnectionMap[platformKey]) {
+            getOrCreateTwitchOfficialConnectionWrapper(platformKey, streamerId, options);
         }
 
         if (!streamEvents[platformKey]) {

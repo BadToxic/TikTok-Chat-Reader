@@ -32,15 +32,15 @@ const twitchEventTypeToTransformer: { [key: string]: (channel: string, tags: any
         timestamp: Date.now(),
         data: {
             comment: message || '',
-            contentLanguage: '',
+            // contentLanguage: '',
             user: twitchUserBaseData(tags.username || '', tags),
-            badges: tags.badges,
-            emotes: tags.emotes,
-            color: tags.color,
-            mod: tags.mod,
-            subscriber: tags.subscriber,
-            turbo: tags.turbo,
-            'message-type': tags['message-type'],
+            // badges: tags.badges,
+            // emotes: tags.emotes,
+            // color: tags.color,
+            // mod: tags.mod,
+            // subscriber: tags.subscriber,
+            // turbo: tags.turbo,
+            // 'message-type': tags['message-type'],
         }
     }),
     'cheer': (channel, tags, message) => ({
@@ -139,12 +139,12 @@ export const getOrCreateTwitchConnectionWrapper = async (platformKey: string, st
             channels: [channel],
         };
 
-        if (process.env.TWITCH_OAUTH_TOKEN) {
+        /*if (process.env.TWITCH_OAUTH_TOKEN) {
             clientConfig.identity = {
                 username: process.env.TWITCH_USERNAME || 'justinfan12345',
                 password: process.env.TWITCH_OAUTH_TOKEN,
             };
-        }
+        }*/
 
         try {
             twitchClient = new tmi.client(clientConfig);
